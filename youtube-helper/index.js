@@ -1,3 +1,4 @@
+const fs = require('fs').promises
 const axios = require('axios')
 require('dotenv').config()
 
@@ -10,10 +11,11 @@ const getCustomUsernameFromUrl = async (url) => {
   return match[1]
 }
 
-const getChannelIdFromUrl = async (url) => {
+const getChannelInfoFromUrl = async (url) => {
   let channelId = null
+  let customUsername = null
   try {
-    const customUsername = await getCustomUsernameFromUrl(url)
+    customUsername = await getCustomUsernameFromUrl(url)
     const response = await axios('https://www.googleapis.com/youtube/v3/search', {
       params: {
         key: process.env.API_KEY,
@@ -33,19 +35,20 @@ const getChannelIdFromUrl = async (url) => {
     console.error('Error fetching channel data:', err)
   }
   
-  return channelId
+  return { channelId, customUsername }
 }
 
-const getAllVideosFromChannel = async (channelId) => {
+const getAllVideosFromChannel = async (channelId, publishedAfter = null) => {
   try {
     let allVideos = []
     let nextPageToken = null
 
+    const currentDate = new Date()
+    // const twelveDaysAgo = new Date(currentDate.getTime() - 12 * 24 * 60 * 60 * 1000)
+    // const rfc3339FormattedDate = twelveDaysAgo.toISOString()
+    // console.log('rfc3339FormattedDate: ', rfc3339FormattedDate)
+
     do {
-      const currentDate = new Date()
-      const twelveDaysAgo = new Date(currentDate.getTime() - 12 * 24 * 60 * 60 * 1000)
-      const rfc3339FormattedDate = twelveDaysAgo.toISOString()
-      console.log('rfc3339FormattedDate: ', rfc3339FormattedDate)
       const response = await axios('https://www.googleapis.com/youtube/v3/search', {
         params: {
           key: process.env.API_KEY,
@@ -53,8 +56,7 @@ const getAllVideosFromChannel = async (channelId) => {
           part: 'id,snippet',
           maxResults: 50,
           type: 'video',
-          // TODO:
-          // publishedAfter: rfc3339FormattedDate,
+          publishedAfter,
           pageToken: nextPageToken,
         },
       })
@@ -67,20 +69,44 @@ const getAllVideosFromChannel = async (channelId) => {
       // console.log('allVideos: ', allVideos)
 
       nextPageToken = next
-      console.log('nextPageToken: ', nextPageToken)
+      // console.log('nextPageToken: ', nextPageToken)
     } while (nextPageToken)
 
-    return allVideos
+    return {
+      allVideos,
+      lastFetch: currentDate.toISOString()
+    }
   } catch (error) {
     console.error('Error fetching videos:', error.message)
     return []
   }
 }
 
+const createDirectoryIfNotExists = async (directoryPath) => {
+  try {
+    await fs.access(directoryPath)
+  } catch (err) {
+    await fs.mkdir(directoryPath)
+  }
+}
+
+const writeJson = async (obj, name) => {
+  try {
+    await createDirectoryIfNotExists('./data')
+    const jsonData = JSON.stringify(obj, null, 2)
+    const filePath = `./data/${name}.json`
+    await fs.writeFile(filePath, jsonData, 'utf8')
+    // console.log('Data has been written to JSON file:', jsonData)
+  } catch (err) {
+    console.error(`Error: ${err.message}`)
+  }
+}
+
 async function main() {
-  const channelId = await getChannelIdFromUrl('https://www.youtube.com/@kanido386')
-  console.log('channelId: ', channelId)
-  const allVideos = await getAllVideosFromChannel(channelId)
+  const { channelId, customUsername } = await getChannelInfoFromUrl('https://www.youtube.com/@kanido386')
+  // console.log('channelId: ', channelId)
+  // TODO: readJson
+  const { allVideos, lastFetch } = await getAllVideosFromChannel(channelId)
   const result = allVideos.map(video => {
     const {
       id: { videoId },
@@ -97,12 +123,16 @@ async function main() {
       videoId,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       title,
-      thumbnail: highThumbnail || mediumThumbnail || defaultThumbnail
+      thumbnail: highThumbnail?.url || mediumThumbnail?.url || defaultThumbnail?.url
     }
   })
-  console.log('Final results: ', result)
-  const thumbnails = allVideos[0].snippet.thumbnails
-  console.log('thumbnails: ', thumbnails)
+  // console.log('Final results: ', result)
+  // console.log('lastFetch: ', lastFetch)
+  const obj = { videos: result, lastFetch }
+  await writeJson(obj, customUsername)
+  console.log('ok')
+  // const thumbnails = allVideos[0].snippet.thumbnails
+  // console.log('thumbnails: ', thumbnails)
 }
 
 main().catch(err => console.log(err))
