@@ -56,6 +56,7 @@ const getAllVideosFromChannel = async (channelId, publishedAfter = null) => {
           part: 'id,snippet',
           maxResults: 50,
           type: 'video',
+          order: 'date',
           publishedAfter,
           pageToken: nextPageToken,
         },
@@ -90,6 +91,20 @@ const createDirectoryIfNotExists = async (directoryPath) => {
   }
 }
 
+const readJson = async (name) => {
+  try {
+    const filePath = `./data/${name}.json`
+    const data = await fs.readFile(filePath, 'utf8')
+    const parsedData = JSON.parse(data)
+    // console.log('Read data from JSON file:', parsedData)
+    return parsedData
+  } catch (err) {
+    console.error(`Error: ${err.message}`)
+    // FIXME: Maybe it's not good to do this here
+    return { videos: [], lastFetch: null }
+  }
+}
+
 const writeJson = async (obj, name) => {
   try {
     await createDirectoryIfNotExists('./data')
@@ -105,8 +120,8 @@ const writeJson = async (obj, name) => {
 async function main() {
   const { channelId, customUsername } = await getChannelInfoFromUrl('https://www.youtube.com/@kanido386')
   // console.log('channelId: ', channelId)
-  // TODO: readJson
-  const { allVideos, lastFetch } = await getAllVideosFromChannel(channelId)
+  const { videos, lastFetch: publishedAfter } = await readJson(customUsername)
+  const { allVideos, lastFetch } = await getAllVideosFromChannel(channelId, publishedAfter)
   const result = allVideos.map(video => {
     const {
       id: { videoId },
@@ -128,7 +143,7 @@ async function main() {
   })
   // console.log('Final results: ', result)
   // console.log('lastFetch: ', lastFetch)
-  const obj = { videos: result, lastFetch }
+  const obj = { videos: [ ...result, ...videos ], lastFetch }
   await writeJson(obj, customUsername)
   console.log('ok')
   // const thumbnails = allVideos[0].snippet.thumbnails
