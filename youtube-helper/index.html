@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Video List</title>
+  <style>
+    /* CSS for styling the video list items */
+    .video-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .video-thumbnail {
+      flex: 0 0 100px;
+      width: 300px;
+      margin-right: 30px;
+    }
+
+    .video-title {
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Video List</h1>
+  
+  <!-- Text area for pasting JSON data -->
+  <label for="jsonData">Paste JSON Data:</label>
+  <textarea id="jsonData" rows="10" cols="50"></textarea>
+  <button id="loadDataButton">Load Data</button>
+
+  <div id="video-list"></div>
+
+  <script>
+    document.getElementById('loadDataButton').addEventListener('click', function () {
+      // Get the JSON data from the text area
+      const jsonDataString = document.getElementById('jsonData').value;
+
+      try {
+        // Parse the JSON data
+        const jsonData = JSON.parse(jsonDataString);
+
+        // Get the element where we will render the video list
+        const videoListElement = document.getElementById('video-list');
+
+        // Clear any previous video list
+        videoListElement.innerHTML = '';
+
+        // Loop through the videos and create HTML elements for each video
+        jsonData.videos.forEach(video => {
+          const videoItem = document.createElement('div');
+          videoItem.classList.add('video-item');
+
+          // Create an anchor tag for the image and set its href to the video's URL
+          const thumbnailAnchor = document.createElement('a');
+          thumbnailAnchor.href = video.url;
+          thumbnailAnchor.target = '_blank';
+
+          // Create the thumbnail (image) element
+          const thumbnail = document.createElement('img');
+          thumbnail.classList.add('video-thumbnail');
+          thumbnail.src = video.thumbnail;
+          thumbnail.alt = video.title;
+
+          // Append the thumbnail to the anchor tag
+          thumbnailAnchor.appendChild(thumbnail);
+
+          // Create the title element
+          const title = document.createElement('h2');
+          title.classList.add('video-title');
+          title.innerHTML = video.title;
+
+          // Append the anchor tag and title to the video item
+          videoItem.appendChild(thumbnailAnchor);
+          videoItem.appendChild(title);
+
+          videoListElement.appendChild(videoItem);
+        });
+      } catch (error) {
+        console.error('Error parsing JSON data:', error);
+      }
+    });
+  </script>
+</body>
+</html>
