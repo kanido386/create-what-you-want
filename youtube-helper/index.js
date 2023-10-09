@@ -101,6 +101,7 @@ const readJson = async (name) => {
   } catch (err) {
     console.error(`Error: ${err.message}`)
     // FIXME: Maybe it's not good to do this here
+    // TODO: Need to modify this since I also use readJson to get my subscribed channels
     return { videos: [], lastFetch: null }
   }
 }
@@ -117,10 +118,11 @@ const writeJson = async (obj, name) => {
   }
 }
 
-async function main() {
-  const { channelId, customUsername } = await getChannelInfoFromUrl('https://www.youtube.com/@kanido386')
+const updateVideoList = async (url, name) => {
+  // TODO: try catch
+  const { channelId, customUsername } = await getChannelInfoFromUrl(url)
   // console.log('channelId: ', channelId)
-  const { videos, lastFetch: publishedAfter } = await readJson(customUsername)
+  const { videos, lastFetch: publishedAfter } = await readJson(name)
   const { allVideos, lastFetch } = await getAllVideosFromChannel(channelId, publishedAfter)
   const result = allVideos.map(video => {
     const {
@@ -144,10 +146,17 @@ async function main() {
   // console.log('Final results: ', result)
   // console.log('lastFetch: ', lastFetch)
   const obj = { videos: [ ...result, ...videos ], lastFetch }
-  await writeJson(obj, customUsername)
-  console.log('ok')
+  await writeJson(obj, name)
+  console.log(`Added ${result.length} video(s) into the channel: ${name}`)
   // const thumbnails = allVideos[0].snippet.thumbnails
   // console.log('thumbnails: ', thumbnails)
+}
+
+async function main() {
+  const { channels } = await readJson('my-subscribed-channels')
+  for (const { url, name } of channels) {
+    await updateVideoList(url, name)
+  }
 }
 
 main().catch(err => console.log(err))
