@@ -1,0 +1,35 @@
+/* CSS for styling the video list items */
+.video-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.video-thumbnail {
+  flex: 0 0 100px; /* Set the width of the thumbnail */
+  width: 300px;
+  margin-right: 30px;
+}
+
+.video-title {
+  flex-grow: 1;
+}
+
+/* CSS for the remove button */
+.remove-button {
+  background-color: #ff0000; /* Red color */
+  color: #ffffff; /* White text */
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* CSS for the copy button */
+#copyButton {
+  margin-top: 20px;
+  background-color: #0074d9; /* Blue color */
+  color: #ffffff; /* White text */
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
