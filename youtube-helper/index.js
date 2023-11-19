@@ -11,11 +11,16 @@ const getCustomUsernameFromUrl = async (url) => {
   return match[1]
 }
 
-const getChannelInfoFromUrl = async (url) => {
+const getChannelInfo = async (id, url) => {
   let channelId = null
   let customUsername = null
   try {
     customUsername = await getCustomUsernameFromUrl(url)
+
+    if (id) {
+      return { channelId: id, customUsername }
+    }
+
     const response = await axios('https://www.googleapis.com/youtube/v3/search', {
       params: {
         key: process.env.API_KEY,
@@ -118,9 +123,9 @@ const writeJson = async (obj, name) => {
   }
 }
 
-const updateVideoList = async (url, name) => {
+const updateVideoList = async (id, url, name) => {
   // TODO: try catch
-  const { channelId, customUsername } = await getChannelInfoFromUrl(url)
+  const { channelId, customUsername } = await getChannelInfo(id, url)
   // console.log('channelId: ', channelId)
   const { videos, lastFetch: publishedAfter } = await readJson(name)
   const { allVideos, lastFetch } = await getAllVideosFromChannel(channelId, publishedAfter)
@@ -154,8 +159,8 @@ const updateVideoList = async (url, name) => {
 
 async function main() {
   const { channels } = await readJson('my-subscribed-channels')
-  for (const { url, name } of channels) {
-    await updateVideoList(url, name)
+  for (const { id, url, name } of channels) {
+    await updateVideoList(id, url, name)
   }
 }
 
